@@ -1,0 +1,838 @@
+<!-- --- START OF FILE ai_studio_code (1).html --- -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HALAL PAY Admin | Manager</title>
+    
+    <!-- Icons & Fonts -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- FIREBASE V8 -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <style>
+        :root {
+            /* PREMIUM ISLAMIC THEME */
+            --bg: #00241B;
+            --sidebar: #001510;
+            --surface: #003B2B;
+            --gold: #D4AF37;
+            --gold-light: #F4DF94;
+            --text: #F0F5F1;
+            --text-sec: #A3C9B6;
+            --border: 1px solid rgba(212, 175, 55, 0.2);
+            --red: #E74C3C;
+            --green: #2ECC71;
+            --blue: #3498db;
+            --gold-grad: linear-gradient(135deg, #D4AF37, #AA8925);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        
+        body { 
+            background-color: var(--bg);
+            color: var(--text); 
+            display: flex; min-height: 100vh; overflow-x: hidden; 
+        }
+
+        /* --- LOADER --- */
+        #loading-screen {
+            position: fixed; inset: 0; background: var(--bg); z-index: 9999;
+            display: flex; justify-content: center; align-items: center; flex-direction: column;
+        }
+        .loader { width: 50px; height: 50px; border: 5px solid var(--gold); border-bottom-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* --- SIDEBAR --- */
+        .sidebar { 
+            width: 260px; 
+            background: var(--sidebar); 
+            border-right: var(--border);
+            display: flex; flex-direction: column; 
+            position: fixed; top: 0; left: 0; height: 100vh; 
+            z-index: 3000;
+            transition: transform 0.3s ease-in-out;
+            box-shadow: 2px 0 15px rgba(0,0,0,0.5);
+        }
+        .logo { padding: 30px; font-family: 'Amiri'; font-size: 24px; color: var(--gold); text-align: center; border-bottom: var(--border); }
+        .nav-item { padding: 16px 25px; cursor: pointer; color: var(--text-sec); transition: 0.3s; display: flex; align-items: center; gap: 15px; font-size: 14px; }
+        .nav-item:hover, .nav-item.active { background: rgba(212, 175, 55, 0.1); color: var(--gold); border-left: 4px solid var(--gold); }
+
+        /* --- TOGGLE BUTTON --- */
+        .menu-btn {
+            display: none; position: fixed; top: 20px; left: 20px; 
+            font-size: 24px; color: var(--gold); 
+            z-index: 2000; cursor: pointer;
+            background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 8px;
+            backdrop-filter: blur(4px);
+        }
+
+        /* --- MAIN --- */
+        .main { flex: 1; margin-left: 260px; padding: 30px; width: 100%; transition: 0.3s; }
+        
+        /* Stats Cards */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 25px; margin-bottom: 30px; }
+        .card { 
+            background: var(--surface); border: var(--border); border-radius: 12px; 
+            padding: 25px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3); 
+            display: flex; flex-direction: column; justify-content: center;
+        }
+        .stat-val { font-size: 32px; font-weight: bold; color: #fff; margin: 15px 0 5px 0; font-family: 'Amiri'; line-height: 1.2; }
+        .stat-lbl { font-size: 13px; color: var(--gold); text-transform: uppercase; letter-spacing: 1px; }
+
+        /* Tables */
+        .section { display: none; }
+        .section.active { display: block; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 14px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px; }
+        th { color: var(--gold); font-size: 11px; text-transform: uppercase; background: rgba(0,0,0,0.2); }
+        
+        .btn-act { padding: 6px 12px; border-radius: 5px; border: none; cursor: pointer; font-size: 12px; font-weight: bold; margin-right: 5px; }
+        .btn-approve { background: rgba(46, 204, 113, 0.2); color: var(--green); border: 1px solid var(--green); }
+        .btn-reject { background: rgba(231, 76, 60, 0.2); color: var(--red); border: 1px solid var(--red); }
+        .btn-info { background: rgba(52, 152, 219, 0.2); color: var(--blue); border: 1px solid var(--blue); }
+        .btn-proof { background: rgba(244, 223, 148, 0.2); color: var(--gold); border: 1px solid var(--gold); }
+
+        /* Forms */
+        input, select, textarea { 
+            width: 100%; padding: 12px; background: rgba(0,0,0,0.3); 
+            border: 1px solid #444; color: #fff; border-radius: 8px; margin-bottom: 12px; outline: none;
+        }
+        input[type="file"] { padding: 8px; font-size: 12px; }
+        label { font-size: 11px; color: #aaa; display: block; margin-bottom: 4px; }
+        .btn-main { width: 100%; padding: 12px; background: var(--gold-grad); color: #000; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; margin-top: 10px; }
+
+        /* Switch Toggle */
+        .switch { position: relative; display: inline-block; width: 40px; height: 20px; vertical-align: middle; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #444; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--gold); }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        /* Pagination */
+        .pagination-container {
+            display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        .pg-btn {
+            background: var(--surface); border: 1px solid var(--gold); color: var(--gold);
+            padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 12px;
+        }
+        .pg-btn:disabled { opacity: 0.5; cursor: not-allowed; border-color: #555; color: #555; }
+
+        /* Modal */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 4000; align-items: center; justify-content: center; }
+        .modal-content { background: var(--surface); padding: 25px; border: 1px solid var(--gold); border-radius: 10px; width: 90%; max-width: 500px; text-align: center; max-height: 90vh; overflow-y: auto; }
+        #proof-img { max-width: 100%; max-height: 60vh; border-radius: 8px; }
+
+        /* Detail Modal Styles */
+        .detail-row { display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); padding: 8px 0; font-size: 13px; }
+        .detail-label { color: var(--text-sec); }
+        .detail-value { color: #fff; font-weight: 500; text-align: right; }
+        .status-ban { color: var(--red); font-weight: bold; }
+        .status-active { color: var(--green); font-weight: bold; }
+
+        @media(max-width: 768px) {
+            .sidebar { transform: translateX(-100%); width: 260px; }
+            .sidebar.active { transform: translateX(0); }
+            .main { margin-left: 0; padding-top: 70px; }
+            .menu-btn { display: block; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Loading -->
+    <div id="loading-screen">
+        <div class="loader"></div>
+        <h3 style="margin-top:15px; color:var(--gold);">HALAL PAY ADMIN</h3>
+    </div>
+
+    <!-- Toggle Button -->
+    <div class="menu-btn" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="logo">ADMIN PANEL</div>
+        <div class="nav-item active" onclick="nav('dashboard')"><i class="fas fa-home"></i> Dashboard</div>
+        <div class="nav-item" onclick="nav('pending-dep')"><i class="fas fa-arrow-down"></i> Pending Deposits <span id="bad-dep" style="margin-left:auto; font-size:10px; background:var(--gold); color:#000; padding:2px 6px; border-radius:10px;">0</span></div>
+        <div class="nav-item" onclick="nav('pending-wd')"><i class="fas fa-arrow-up"></i> Pending Withdrawals <span id="bad-wd" style="margin-left:auto; font-size:10px; background:var(--red); color:#fff; padding:2px 6px; border-radius:10px;">0</span></div>
+        <div class="nav-item" onclick="nav('gifts')"><i class="fas fa-gift"></i> Gift Requests <span id="bad-gift" style="margin-left:auto; font-size:10px; background:var(--blue); color:#fff; padding:2px 6px; border-radius:10px;">0</span></div>
+        <div class="nav-item" onclick="nav('users')"><i class="fas fa-users"></i> User Management</div>
+        <div class="nav-item" onclick="nav('settings')"><i class="fas fa-cogs"></i> App Settings</div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main">
+        
+        <!-- DASHBOARD -->
+        <div id="dashboard" class="section active">
+            <h2 style="color:var(--gold); margin-bottom:25px; font-family:'Amiri'; border-bottom: 1px solid #333; padding-bottom: 10px;">Dashboard Overview</h2>
+            <div class="stats-grid">
+                <div class="card" style="border-color:var(--green); background: linear-gradient(160deg, #003B2B, #001f17);">
+                    <div class="stat-lbl" style="color:var(--green)">Net Profit</div>
+                    <div class="stat-val" id="st-earn">0</div>
+                    <div style="font-size:11px; color:#aaa;">(Deposits - Withdrawals)</div>
+                </div>
+                <div class="card">
+                    <div class="stat-lbl">Total Approved Deposits</div>
+                    <div class="stat-val" style="color:var(--gold);" id="st-dep">0</div>
+                </div>
+                <div class="card">
+                    <div class="stat-lbl">Total Approved Withdrawals</div>
+                    <div class="stat-val" style="color:var(--red);" id="st-wd">0</div>
+                </div>
+                <div class="card">
+                    <div class="stat-lbl">Total Users Registered</div>
+                    <div class="stat-val" id="st-users">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PENDING DEPOSITS -->
+        <div id="pending-dep" class="section">
+            <h2 style="color:var(--gold); margin-bottom:20px;">Pending Deposits</h2>
+            <div class="card" style="overflow-x:auto;">
+                <table>
+                    <thead><tr><th>User</th><th>Amount / TRX</th><th>Method</th><th>Proof</th><th>Action</th></tr></thead>
+                    <tbody id="list-dep"></tbody>
+                </table>
+                <div id="no-dep" style="text-align:center; padding:20px; color:#666; font-size:12px;">No pending deposits</div>
+            </div>
+        </div>
+
+        <!-- PENDING WITHDRAWALS -->
+        <div id="pending-wd" class="section">
+            <h2 style="color:var(--red); margin-bottom:20px;">Pending Withdrawals</h2>
+            <div class="card" style="overflow-x:auto;">
+                <table>
+                    <thead><tr><th>User / Balance</th><th>Amount</th><th>Details</th><th>Action</th></tr></thead>
+                    <tbody id="list-wd"></tbody>
+                </table>
+                <div id="no-wd" style="text-align:center; padding:20px; color:#666; font-size:12px;">No pending withdrawals</div>
+            </div>
+        </div>
+
+        <!-- GIFT REQUESTS -->
+        <div id="gifts" class="section">
+            <h2 style="color:var(--blue); margin-bottom:20px;">Gift Requests</h2>
+            <div class="card" style="overflow-x:auto;">
+                <table>
+                    <thead><tr><th>User</th><th>Tier Target</th><th>Bonus Amount</th><th>Action</th></tr></thead>
+                    <tbody id="list-gifts"></tbody>
+                </table>
+                <div id="no-gifts" style="text-align:center; padding:20px; color:#666; font-size:12px;">No pending gift requests</div>
+            </div>
+        </div>
+
+        <!-- USERS -->
+        <div id="users" class="section">
+            <h2 style="color:var(--gold); margin-bottom:20px;">User Management</h2>
+            <input type="text" id="search-box" placeholder="Search by Name or Phone..." onkeyup="renderUsersWithSearch()">
+            
+            <div class="card" style="overflow-x:auto;">
+                <table>
+                    <thead><tr><th>Name</th><th>Phone</th><th>Balance</th><th>Actions</th></tr></thead>
+                    <tbody id="list-users"></tbody>
+                </table>
+                
+                <div class="pagination-container" id="pg-controls">
+                    <button class="pg-btn" id="btn-prev" onclick="changePage(-1)">Previous</button>
+                    <span style="font-size:12px; color:#aaa;" id="page-indicator">Page 1</span>
+                    <button class="pg-btn" id="btn-next" onclick="changePage(1)">Next</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SETTINGS -->
+        <div id="settings" class="section">
+            <h2 style="color:var(--gold); margin-bottom:20px;">System Settings</h2>
+            <div class="stats-grid">
+                
+                <!-- App Config & Withdrawal Toggle -->
+                <div class="card">
+                    <h3 style="color:var(--gold); margin-bottom:15px; border-bottom:1px solid #444; padding-bottom:5px;">App Config</h3>
+                    
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px;">
+                        <span style="color:#fff; font-size:12px;">Withdrawals ON/OFF</span>
+                        <label class="switch">
+                            <input type="checkbox" id="toggle-wd" onchange="toggleWithdrawalSystem()">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <label>Popup Title</label><input type="text" id="set-popup-title">
+                    <label>Popup Message</label><textarea id="set-popup" rows="3"></textarea>
+                    <label>Popup Template</label>
+                    <select id="set-popup-temp">
+                        <option value="default">Default (Gold)</option>
+                        <option value="success">Success (Green)</option>
+                        <option value="alert">Alert (Red)</option>
+                        <option value="announcement">Announcement (Blue)</option>
+                    </select>
+                    <label>WhatsApp Support</label><input type="text" id="set-wa">
+                    <label>Telegram Support</label><input type="text" id="set-tg">
+                    <button class="btn-main" onclick="saveConfig()">Save Config</button>
+                </div>
+
+                <!-- Payment Accounts (Text Only) -->
+                <div class="card">
+                    <h3 style="color:var(--gold); margin-bottom:15px; border-bottom:1px solid #444; padding-bottom:5px;">Payment Accounts</h3>
+                    <label>Easypaisa Title</label><input type="text" id="set-ep-tit">
+                    <label>Easypaisa Number</label><input type="number" id="set-ep-num">
+                    
+                    <hr style="border:0; border-top:1px solid #444; margin:15px 0;">
+
+                    <label>Jazzcash Title</label><input type="text" id="set-jc-tit">
+                    <label>Jazzcash Number</label><input type="number" id="set-jc-num">
+                    
+                    <button class="btn-main" style="margin-top:20px;" onclick="saveAccounts()">Save Titles & Numbers</button>
+                </div>
+
+                <!-- Payment Logos (Images Only) -->
+                <div class="card">
+                    <h3 style="color:var(--gold); margin-bottom:15px; border-bottom:1px solid #444; padding-bottom:5px;">Payment Logos</h3>
+                    
+                    <label style="margin-top:10px;">Easypaisa Logo</label>
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <img id="preview-ep" src="" style="height:40px; border-radius:4px; background:white; padding:2px;">
+                        <input type="file" id="file-ep" accept="image/*">
+                    </div>
+                    <button class="btn-act btn-proof" style="width:100%; margin-top:5px;" onclick="saveLogo('easypaisa')">Upload EP Logo</button>
+                    
+                    <hr style="border:0; border-top:1px solid #444; margin:15px 0;">
+
+                    <label style="margin-top:10px;">Jazzcash Logo</label>
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <img id="preview-jc" src="" style="height:40px; border-radius:4px; background:white; padding:2px;">
+                        <input type="file" id="file-jc" accept="image/*">
+                    </div>
+                    <button class="btn-act btn-proof" style="width:100%; margin-top:5px;" onclick="saveLogo('jazzcash')">Upload JC Logo</button>
+                </div>
+
+                <!-- Task Links -->
+                <div class="card">
+                    <h3 style="color:var(--gold); margin-bottom:15px; border-bottom:1px solid #444; padding-bottom:5px;">Task Links</h3>
+                    <label>Watch Video Link</label>
+                    <input type="text" id="set-task-video">
+                    <label>WhatsApp Channel Link</label>
+                    <input type="text" id="set-task-wa">
+                    <label>Subscribe Channel Link</label>
+                    <input type="text" id="set-task-sub">
+                    <button class="btn-main" onclick="saveTaskConfig()">Save Task Links</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PROOF MODAL -->
+    <div class="modal-overlay" id="proof-modal" onclick="this.style.display='none'">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <img id="proof-img" src="">
+            <br><br>
+            <button class="btn-act btn-reject" onclick="document.getElementById('proof-modal').style.display='none'">Close</button>
+        </div>
+    </div>
+
+    <!-- USER EDIT MODAL -->
+    <div class="modal-overlay" id="user-modal">
+        <div class="modal-content">
+            <h3 style="color:var(--gold);">Edit User</h3>
+            <input type="hidden" id="edit-uid">
+            <label style="text-align:left;">Name</label><input type="text" id="edit-name" readonly style="color:#aaa;">
+            <label style="text-align:left;">Balance</label><input type="number" id="edit-bal">
+            <label style="text-align:left;">Password</label><input type="text" id="edit-pass">
+            <div style="display:flex; gap:10px;">
+                <button class="btn-main" onclick="saveUser()">Save</button>
+                <button class="btn-main" style="background:var(--red); color:#fff;" onclick="closeUserModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- USER DETAIL MODAL -->
+    <div class="modal-overlay" id="detail-modal">
+        <div class="modal-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h3 style="color:var(--gold); font-family:'Amiri';">User Details</h3>
+                <i class="fas fa-times" style="cursor:pointer; font-size:20px;" onclick="document.getElementById('detail-modal').style.display='none'"></i>
+            </div>
+            
+            <div style="background:rgba(0,0,0,0.3); padding:15px; border-radius:10px; margin-bottom:15px;">
+                <div class="detail-row"><span class="detail-label">Name</span><span class="detail-value" id="d-name">...</span></div>
+                <div class="detail-row"><span class="detail-label">Phone</span><span class="detail-value" id="d-phone">...</span></div>
+                <div class="detail-row"><span class="detail-label">Password</span><span class="detail-value" id="d-pass" style="color:var(--gold);">...</span></div>
+                <div class="detail-row"><span class="detail-label">UID</span><span class="detail-value" id="d-uid" style="font-size:10px;">...</span></div>
+                <div class="detail-row"><span class="detail-label">Joined On</span><span class="detail-value" id="d-join">...</span></div>
+                <div class="detail-row"><span class="detail-label">Invited By</span><span class="detail-value" id="d-inv">...</span></div>
+            </div>
+
+            <div style="background:rgba(0,0,0,0.3); padding:15px; border-radius:10px; margin-bottom:15px;">
+                <div class="detail-row"><span class="detail-label">Wallet Balance</span><span class="detail-value" id="d-bal" style="color:var(--green);">...</span></div>
+                <div class="detail-row"><span class="detail-label">Total Earned</span><span class="detail-value" id="d-earned">...</span></div>
+                <div class="detail-row"><span class="detail-label">Total Commission</span><span class="detail-value" id="d-comm" style="color:var(--gold);">...</span></div>
+                <div class="detail-row"><span class="detail-label">Total Deposit</span><span class="detail-value" id="d-depo">...</span></div>
+                <div class="detail-row"><span class="detail-label">Total Withdraw</span><span class="detail-value" id="d-with">...</span></div>
+            </div>
+
+            <div style="background:rgba(0,0,0,0.3); padding:15px; border-radius:10px; margin-bottom:15px;">
+                <h4 style="color:var(--gold); font-size:12px; margin-bottom:10px; text-transform:uppercase;">Team Statistics</h4>
+                <div class="detail-row"><span class="detail-label">Total Referrals</span><span class="detail-value" id="d-team">0</span></div>
+                <div class="detail-row"><span class="detail-label">Active Referrals</span><span class="detail-value" style="color:var(--green);" id="d-team-act">0</span></div>
+                <div class="detail-row"><span class="detail-label">Non-Active Referrals</span><span class="detail-value" style="color:var(--red);" id="d-team-non">0</span></div>
+            </div>
+
+            <button id="ban-btn" class="btn-main" onclick="toggleBan()">BAN USER</button>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIG ---
+        const firebaseConfig = { apiKey: "AIzaSyBQn9mk2MFq_c98hvp1c92KicrZ7IQZpho", authDomain: "halalpay-2e091.firebaseapp.com", databaseURL: "https://halalpay-2e091-default-rtdb.firebaseio.com", projectId: "halalpay-2e091", storageBucket: "halalpay-2e091.firebasestorage.app", messagingSenderId: "505842804160", appId: "1:505842804160:web:19b1e6c99622e667f11425" };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let allUsersObj = {}; 
+        let userArray = [];
+        let totalDepApproved = 0, totalWdApproved = 0;
+        let currentPage = 1;
+        const usersPerPage = 20;
+        let currentDetailUid = '';
+
+        window.onload = () => { loadDashboardData(); loadSettings(); };
+
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
+        function nav(id) {
+            document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            if(window.innerWidth < 769) document.getElementById('sidebar').classList.remove('active');
+        }
+
+        // --- DATA ---
+        function loadDashboardData() {
+            db.ref('users').on('value', snap => {
+                allUsersObj = snap.val() || {};
+                userArray = [];
+                Object.keys(allUsersObj).forEach(key => { userArray.push({ uid: key, ...allUsersObj[key] }); });
+                document.getElementById('st-users').innerText = userArray.length;
+                renderUsersWithSearch();
+                document.getElementById('loading-screen').style.display = 'none';
+            });
+
+            db.ref('deposits').on('value', snap => {
+                let pendingHtml = '', tDep = 0, pendingCount = 0;
+                let hasPending = false;
+                snap.forEach(userSnap => {
+                    const uid = userSnap.key;
+                    userSnap.forEach(trxSnap => {
+                        const d = trxSnap.val();
+                        if(d.status === 'accepted') tDep += parseFloat(d.amount);
+                        if(d.status === 'pending') {
+                            hasPending = true; pendingCount++;
+                            const uName = allUsersObj[uid]?.name || 'Unknown';
+                            pendingHtml += `<tr><td>${uName}<br><span style="font-size:10px; color:#aaa;">${uid.substr(0,5)}...</span></td><td style="color:var(--gold); font-weight:bold;">${d.amount}<br><span style="font-size:10px;">${d.trx}</span></td><td>${d.method}</td><td><button class="btn-act btn-proof" onclick="viewProof('${d.screenshot}')">View</button></td><td><button class="btn-act btn-approve" onclick="actionDep('${uid}','${trxSnap.key}',${d.amount},true)">✔</button><button class="btn-act btn-reject" onclick="actionDep('${uid}','${trxSnap.key}',0,false)">✘</button></td></tr>`;
+                        }
+                    });
+                });
+                totalDepApproved = tDep; updateEarnings();
+                document.getElementById('list-dep').innerHTML = pendingHtml;
+                document.getElementById('no-dep').style.display = hasPending ? 'none' : 'block';
+                document.getElementById('bad-dep').innerText = pendingCount;
+            });
+
+            db.ref('withdrawals').on('value', snap => {
+                let pendingHtml = '', tWd = 0, pendingCount = 0;
+                let hasPending = false;
+                snap.forEach(userSnap => {
+                    const uid = userSnap.key;
+                    userSnap.forEach(trxSnap => {
+                        const w = trxSnap.val();
+                        if(w.status === 'accepted') tWd += parseFloat(w.amount);
+                        if(w.status === 'pending') {
+                            hasPending = true; pendingCount++;
+                            const uName = allUsersObj[uid]?.name || 'Unknown';
+                            pendingHtml += `<tr>
+                                <td>${uName}<br><span style="font-size:10px; color:var(--green);">Bal: ${allUsersObj[uid]?.balance||0}</span></td>
+                                <td style="color:var(--red); font-weight:bold;">${w.amount}</td>
+                                <td style="font-size:11px;">
+                                    ${w.details}
+                                    <i class="fas fa-copy" style="color:var(--gold); cursor:pointer; margin-left:5px;" onclick="copyText('${w.details}')" title="Copy"></i>
+                                </td>
+                                <td>
+                                    <button class="btn-act btn-approve" onclick="actionWd('${uid}','${trxSnap.key}',${w.amount},true)">✔</button>
+                                    <button class="btn-act btn-reject" onclick="actionWd('${uid}','${trxSnap.key}',${w.amount},false)">✘</button>
+                                </td>
+                            </tr>`;
+                        }
+                    });
+                });
+                totalWdApproved = tWd; updateEarnings();
+                document.getElementById('list-wd').innerHTML = pendingHtml;
+                document.getElementById('no-wd').style.display = hasPending ? 'none' : 'block';
+                document.getElementById('bad-wd').innerText = pendingCount;
+            });
+
+            // Gift Requests Listener
+            db.ref('gift_requests').on('value', snap => {
+                let html = '', count = 0, hasPending = false;
+                snap.forEach(userSnap => {
+                    const uid = userSnap.key;
+                    userSnap.forEach(reqSnap => {
+                        const r = reqSnap.val();
+                        if(r.status === 'pending') {
+                            hasPending = true; count++;
+                            const uName = allUsersObj[uid]?.name || 'Unknown';
+                            html += `<tr>
+                                <td>${uName}<br><span style="font-size:10px; color:#aaa;">${uid.substr(0,5)}...</span></td>
+                                <td>${r.tier} Members</td>
+                                <td style="color:var(--gold); font-weight:bold;">${r.amount}</td>
+                                <td>
+                                    <button class="btn-act btn-approve" onclick="actionGift('${uid}','${reqSnap.key}',${r.amount},true)">✔</button>
+                                    <button class="btn-act btn-reject" onclick="actionGift('${uid}','${reqSnap.key}',0,false)">✘</button>
+                                </td>
+                            </tr>`;
+                        }
+                    });
+                });
+                document.getElementById('list-gifts').innerHTML = html;
+                document.getElementById('no-gifts').style.display = hasPending ? 'none' : 'block';
+                document.getElementById('bad-gift').innerText = count;
+            });
+        }
+
+        function updateEarnings() {
+            document.getElementById('st-dep').innerText = totalDepApproved.toFixed(0);
+            document.getElementById('st-wd').innerText = totalWdApproved.toFixed(0);
+            const net = totalDepApproved - totalWdApproved;
+            const el = document.getElementById('st-earn');
+            el.innerText = net.toFixed(0);
+            el.style.color = net >= 0 ? 'var(--green)' : 'var(--red)';
+        }
+
+        function copyText(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true });
+                Toast.fire({ icon: 'success', title: 'Copied!' });
+            }).catch(err => {
+                console.error('Failed to copy', err);
+            });
+        }
+
+        // --- ACTIONS ---
+        function actionDep(uid, key, amount, isApprove) {
+            Swal.fire({title: isApprove ? 'Approve Deposit?' : 'Reject Deposit?', icon: 'question', showCancelButton: true}).then((result) => {
+                if(result.isConfirmed) {
+                    db.ref(`deposits/${uid}/${key}`).update({ status: isApprove ? 'accepted' : 'rejected' });
+                    
+                    if(isApprove) {
+                        const uRef = db.ref(`users/${uid}`);
+                        uRef.once('value', s => {
+                            const u = s.val();
+                            const depAmt = parseFloat(amount);
+                            const newBal = (parseFloat(u.balance)||0) + depAmt;
+                            const newDep = (parseFloat(u.totalDeposit)||0) + depAmt;
+                            uRef.update({ balance: newBal, totalDeposit: newDep });
+
+                            // *** COMMISSION DISTRIBUTION LOGIC ***
+                            distributeCommission(u.invitedBy, depAmt);
+                        });
+                    }
+                    Swal.fire('Done', '', 'success');
+                }
+            });
+        }
+        
+        function distributeCommission(codeL1, amount) {
+            if(!codeL1 || codeL1 === 'System') return;
+
+            db.ref('users').orderByChild('inviteCode').equalTo(parseInt(codeL1)).once('value', s => {
+                if(s.exists()) {
+                    const l1Key = Object.keys(s.val())[0];
+                    const l1User = s.val()[l1Key];
+                    const commL1 = amount * 0.15; // 15% for Level 1
+                    
+                    db.ref(`users/${l1Key}`).update({
+                        balance: (l1User.balance||0) + commL1,
+                        totalCommission: (l1User.totalCommission||0) + commL1,
+                        totalEarned: (l1User.totalEarned||0) + commL1,
+                        totalTeam: (l1User.totalTeam||0)
+                    });
+
+                    if(l1User.invitedBy && l1User.invitedBy !== 'System') {
+                        db.ref('users').orderByChild('inviteCode').equalTo(parseInt(l1User.invitedBy)).once('value', s2 => {
+                            if(s2.exists()) {
+                                const l2Key = Object.keys(s2.val())[0];
+                                const l2User = s2.val()[l2Key];
+                                const commL2 = amount * 0.10; // 10% for Level 2
+                                
+                                db.ref(`users/${l2Key}`).update({
+                                    balance: (l2User.balance||0) + commL2,
+                                    totalCommission: (l2User.totalCommission||0) + commL2,
+                                    totalEarned: (l2User.totalEarned||0) + commL2
+                                });
+                            }
+                        });
+                    }
+                }
+            });
+        }
+
+        function actionWd(uid, key, amount, isApprove) {
+            Swal.fire({title: isApprove ? 'Approve?' : 'Reject?', icon: 'question', showCancelButton: true}).then((result) => {
+                if(result.isConfirmed) {
+                    db.ref(`withdrawals/${uid}/${key}`).update({ status: isApprove ? 'accepted' : 'rejected' });
+                    if(!isApprove) db.ref(`users/${uid}`).once('value', s => db.ref(`users/${uid}`).update({ balance: (s.val().balance||0)+amount }));
+                    Swal.fire('Done', '', 'success');
+                }
+            });
+        }
+
+        function actionGift(uid, key, amount, isApprove) {
+            Swal.fire({title: isApprove ? 'Approve Gift?' : 'Reject Gift?', icon: 'question', showCancelButton: true}).then((result) => {
+                if(result.isConfirmed) {
+                    db.ref(`gift_requests/${uid}/${key}`).update({ status: isApprove ? 'accepted' : 'rejected' });
+                    if(isApprove) {
+                        db.ref(`users/${uid}`).once('value', s => {
+                            const u = s.val();
+                            db.ref(`users/${uid}`).update({ 
+                                balance: (u.balance||0) + amount,
+                                totalEarned: (u.totalEarned||0) + amount 
+                            });
+                        });
+                    }
+                    Swal.fire('Done', '', 'success');
+                }
+            });
+        }
+
+        // --- USER MANAGEMENT & DETAILS ---
+        function renderUsersWithSearch() {
+            const term = document.getElementById('search-box').value.toLowerCase();
+            const tbody = document.getElementById('list-users'); tbody.innerHTML = '';
+            let list = term ? userArray.filter(u => (u.name && u.name.toLowerCase().includes(term)) || (u.phone && u.phone.includes(term))) : userArray.slice((currentPage-1)*usersPerPage, currentPage*usersPerPage);
+            document.getElementById('pg-controls').style.display = term ? 'none' : 'flex';
+            
+            if(list.length === 0) return tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No users</td></tr>';
+
+            list.forEach(u => {
+                const statusColor = u.isBanned ? 'var(--red)' : 'var(--green)';
+                tbody.innerHTML += `
+                <tr>
+                    <td>${u.name}<br><span style="font-size:10px; color:${statusColor};">${u.isBanned ? 'BANNED' : 'Active'}</span></td>
+                    <td>${u.phone}</td>
+                    <td style="color:var(--gold);">${u.balance ? u.balance.toFixed(2) : 0}</td>
+                    <td>
+                        <button class="btn-act btn-proof" onclick="editUser('${u.uid}')">Edit</button>
+                        <button class="btn-act btn-info" onclick="showUserDetail('${u.uid}')">Detail</button>
+                    </td>
+                </tr>`;
+            });
+            updatePaginationControls();
+        }
+
+        function showUserDetail(uid) {
+            currentDetailUid = uid;
+            const u = allUsersObj[uid];
+            
+            // Basic Info
+            document.getElementById('d-name').innerText = u.name;
+            document.getElementById('d-phone').innerText = u.phone;
+            document.getElementById('d-pass').innerText = u.password || 'N/A';
+            document.getElementById('d-uid').innerText = uid;
+            document.getElementById('d-join').innerText = u.joinedAt ? new Date(u.joinedAt).toLocaleDateString() : 'N/A';
+            document.getElementById('d-inv').innerText = u.invitedBy || 'System';
+
+            // Stats
+            document.getElementById('d-bal').innerText = (u.balance||0).toFixed(2);
+            document.getElementById('d-earned').innerText = (u.totalEarned||0).toFixed(2);
+            document.getElementById('d-comm').innerText = (u.totalCommission||0).toFixed(2);
+            document.getElementById('d-depo').innerText = (u.totalDeposit||0).toFixed(2);
+            document.getElementById('d-with').innerText = (u.totalWithdrawn||0).toFixed(2);
+
+            // Team Calculation
+            let totalRef = 0, activeRef = 0, nonActiveRef = 0;
+            userArray.forEach(sub => {
+                if(sub.invitedBy == u.inviteCode) {
+                    totalRef++;
+                    if(sub.totalDeposit > 0) activeRef++; else nonActiveRef++;
+                }
+            });
+            document.getElementById('d-team').innerText = totalRef;
+            document.getElementById('d-team-act').innerText = activeRef;
+            document.getElementById('d-team-non').innerText = nonActiveRef;
+
+            // Ban Button
+            const btn = document.getElementById('ban-btn');
+            if(u.isBanned) {
+                btn.innerText = "UNBAN USER";
+                btn.style.background = "var(--green)";
+            } else {
+                btn.innerText = "BAN USER";
+                btn.style.background = "var(--red)";
+            }
+
+            document.getElementById('detail-modal').style.display = 'flex';
+        }
+
+        function toggleBan() {
+            const u = allUsersObj[currentDetailUid];
+            const newState = !u.isBanned;
+            db.ref(`users/${currentDetailUid}`).update({ isBanned: newState }).then(() => {
+                showUserDetail(currentDetailUid); // Refresh Modal
+                renderUsersWithSearch(); // Refresh List
+                Swal.fire({
+                    toast: true, position: 'top-end', icon: 'success', 
+                    title: newState ? 'User Banned' : 'User Unbanned', showConfirmButton: false, timer: 1500
+                });
+            });
+        }
+
+        function updatePaginationControls() {
+            const totalPages = Math.ceil(userArray.length / usersPerPage);
+            document.getElementById('page-indicator').innerText = `Page ${currentPage} of ${totalPages || 1}`;
+            document.getElementById('btn-prev').disabled = (currentPage === 1);
+            document.getElementById('btn-next').disabled = (currentPage >= totalPages || totalPages === 0);
+        }
+
+        function changePage(dir) {
+            const totalPages = Math.ceil(userArray.length / usersPerPage);
+            if(dir === -1 && currentPage > 1) currentPage--;
+            if(dir === 1 && currentPage < totalPages) currentPage++;
+            renderUsersWithSearch();
+        }
+
+        // --- UTILS & SETTINGS ---
+        function editUser(uid) {
+            const u = allUsersObj[uid];
+            document.getElementById('edit-uid').value = uid;
+            document.getElementById('edit-name').value = u.name;
+            document.getElementById('edit-bal').value = u.balance;
+            document.getElementById('edit-pass').value = u.password || '';
+            document.getElementById('user-modal').style.display = 'flex';
+        }
+        function saveUser() {
+            const uid = document.getElementById('edit-uid').value;
+            db.ref(`users/${uid}`).update({ 
+                balance: parseFloat(document.getElementById('edit-bal').value), 
+                password: document.getElementById('edit-pass').value 
+            }).then(() => { closeUserModal(); Swal.fire('Saved', '', 'success'); });
+        }
+        function closeUserModal() { document.getElementById('user-modal').style.display = 'none'; }
+        
+        function loadSettings() {
+            db.ref('settings').once('value', s => {
+                const d = s.val() || {};
+                
+                // Withdrawal Toggle
+                document.getElementById('toggle-wd').checked = d.withdrawal_status || false;
+
+                // Payment
+                if(d.easypaisa) { 
+                    document.getElementById('set-ep-tit').value = d.easypaisa.title || ''; 
+                    document.getElementById('set-ep-num').value = d.easypaisa.number || ''; 
+                    if(d.easypaisa.image) document.getElementById('preview-ep').src = d.easypaisa.image;
+                }
+                if(d.jazzcash) { 
+                    document.getElementById('set-jc-tit').value = d.jazzcash.title || ''; 
+                    document.getElementById('set-jc-num').value = d.jazzcash.number || ''; 
+                    if(d.jazzcash.image) document.getElementById('preview-jc').src = d.jazzcash.image;
+                }
+                
+                // Popup
+                document.getElementById('set-popup').value = d.popup_msg || '';
+                document.getElementById('set-popup-title').value = d.popup_title || '';
+                document.getElementById('set-popup-temp').value = d.popup_template || 'default';
+                
+                // Support
+                if(d.support) { 
+                    document.getElementById('set-wa').value = d.support.whatsapp || ''; 
+                    document.getElementById('set-tg').value = d.support.telegram || ''; 
+                }
+                
+                // Links
+                if(d.links) { 
+                    document.getElementById('set-task-video').value = d.links.video || ''; 
+                    document.getElementById('set-task-wa').value = d.links.whatsapp || ''; 
+                    document.getElementById('set-task-sub').value = d.links.subscribe || ''; 
+                }
+            });
+        }
+        
+        function toggleWithdrawalSystem() {
+            const status = document.getElementById('toggle-wd').checked;
+            db.ref('settings').update({ withdrawal_status: status })
+                .then(() => {
+                    const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });
+                    Toast.fire({ icon: 'success', title: status ? 'Withdrawals Enabled' : 'Withdrawals Disabled' });
+                });
+        }
+
+        function saveLogo(type) {
+            const fileInput = document.getElementById(type === 'easypaisa' ? 'file-ep' : 'file-jc');
+            const file = fileInput.files[0];
+            
+            if(!file) return Swal.fire('Error', 'Please choose a file first', 'error');
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64 = e.target.result;
+                db.ref(`settings/${type}/image`).set(base64).then(() => {
+                    Swal.fire('Success', 'Logo uploaded successfully!', 'success');
+                    document.getElementById(type === 'easypaisa' ? 'preview-ep' : 'preview-jc').src = base64;
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function saveTaskConfig() { 
+            db.ref('settings/links').update({ 
+                video: document.getElementById('set-task-video').value, 
+                whatsapp: document.getElementById('set-task-wa').value, 
+                subscribe: document.getElementById('set-task-sub').value 
+            }).then(() => Swal.fire('Saved', '', 'success')); 
+        }
+        
+        function saveAccounts() { 
+            db.ref('settings').update({ 
+                easypaisa: { 
+                    title: document.getElementById('set-ep-tit').value, 
+                    number: document.getElementById('set-ep-num').value
+                }, 
+                jazzcash: { 
+                    title: document.getElementById('set-jc-tit').value, 
+                    number: document.getElementById('set-jc-num').value
+                } 
+            }).then(() => Swal.fire('Saved', '', 'success')); 
+        }
+        
+        function saveConfig() { 
+            db.ref('settings').update({ 
+                popup_msg: document.getElementById('set-popup').value, 
+                popup_title: document.getElementById('set-popup-title').value,
+                popup_template: document.getElementById('set-popup-temp').value,
+                support: { 
+                    whatsapp: document.getElementById('set-wa').value, 
+                    telegram: document.getElementById('set-tg').value 
+                } 
+            }).then(() => Swal.fire('Saved', '', 'success')); 
+        }
+        
+        function viewProof(url) { document.getElementById('proof-img').src = url; document.getElementById('proof-modal').style.display = 'flex'; }
+    </script>
+</body>
+</html>
