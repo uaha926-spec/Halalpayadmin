@@ -1,3 +1,7 @@
+<!-- --- START OF FILE ai_studio_code (4).html --- -->
+
+<!-- --- START OF FILE ai_studio_code (3).html --- -->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -60,6 +64,7 @@
             z-index: 3000;
             transition: transform 0.3s ease-in-out;
             box-shadow: 2px 0 15px rgba(0,0,0,0.5);
+            overflow-y: auto; /* Allow scrolling if sidebar is tall */
         }
         .logo { padding: 30px; font-family: 'Amiri'; font-size: 24px; color: var(--gold); text-align: center; border-bottom: var(--border); }
         .nav-item { padding: 16px 25px; cursor: pointer; color: var(--text-sec); transition: 0.3s; display: flex; align-items: center; gap: 15px; font-size: 14px; }
@@ -171,6 +176,11 @@
         <div class="nav-item" onclick="nav('pending-wd')"><i class="fas fa-arrow-up"></i> Pending Withdrawals <span id="bad-wd" style="margin-left:auto; font-size:10px; background:var(--red); color:#fff; padding:2px 6px; border-radius:10px;">0</span></div>
         <div class="nav-item" onclick="nav('gifts')"><i class="fas fa-gift"></i> Gift Requests <span id="bad-gift" style="margin-left:auto; font-size:10px; background:var(--blue); color:#fff; padding:2px 6px; border-radius:10px;">0</span></div>
         <div class="nav-item" onclick="nav('users')"><i class="fas fa-users"></i> User Management</div>
+        
+        <!-- NEW SEPARATE SECTIONS -->
+        <div class="nav-item" onclick="nav('task-links')"><i class="fas fa-link"></i> Task Links</div>
+        <div class="nav-item" onclick="nav('pay-logos')"><i class="fas fa-images"></i> Payment Logos</div>
+        
         <div class="nav-item" onclick="nav('settings')"><i class="fas fa-cogs"></i> App Settings</div>
     </div>
 
@@ -256,6 +266,50 @@
             </div>
         </div>
 
+        <!-- TASK LINKS SECTION -->
+        <div id="task-links" class="section">
+            <h2 style="color:var(--gold); margin-bottom:20px;">Manage Task Links</h2>
+            <div class="card">
+                <h3 style="color:var(--gold); margin-bottom:15px; border-bottom:1px solid #444; padding-bottom:5px;">Update Task URLs</h3>
+                <label>Watch Video Link</label>
+                <input type="text" id="set-task-video">
+                <label>WhatsApp Channel Link</label>
+                <input type="text" id="set-task-wa">
+                <label>Subscribe Channel Link</label>
+                <input type="text" id="set-task-sub">
+                
+                <!-- APK LINK INPUT ADDED -->
+                <label style="color:var(--gold);">APK Download Link</label>
+                <input type="text" id="set-link-apk" placeholder="https://drive.google.com/...">
+                
+                <button class="btn-main" onclick="saveTaskConfig()">Save Task Links</button>
+            </div>
+        </div>
+
+        <!-- PAYMENT LOGOS SECTION -->
+        <div id="pay-logos" class="section">
+            <h2 style="color:var(--gold); margin-bottom:20px;">Manage Payment Logos</h2>
+            <div class="card">
+                <h3 style="color:var(--gold); margin-bottom:15px; border-bottom:1px solid #444; padding-bottom:5px;">Upload Logos</h3>
+                
+                <label style="margin-top:10px;">Easypaisa Logo</label>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <img id="preview-ep" src="" style="height:40px; border-radius:4px; background:white; padding:2px;">
+                    <input type="file" id="file-ep" accept="image/*">
+                </div>
+                <button class="btn-act btn-proof" style="width:100%; margin-top:5px;" onclick="saveLogo('easypaisa')">Upload EP Logo</button>
+                
+                <hr style="border:0; border-top:1px solid #444; margin:15px 0;">
+
+                <label style="margin-top:10px;">Jazzcash Logo</label>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <img id="preview-jc" src="" style="height:40px; border-radius:4px; background:white; padding:2px;">
+                    <input type="file" id="file-jc" accept="image/*">
+                </div>
+                <button class="btn-act btn-proof" style="width:100%; margin-top:5px;" onclick="saveLogo('jazzcash')">Upload JC Logo</button>
+            </div>
+        </div>
+
         <!-- SETTINGS -->
         <div id="settings" class="section">
             <h2 style="color:var(--gold); margin-bottom:20px;">System Settings</h2>
@@ -282,7 +336,8 @@
                         <option value="alert">Alert (Red)</option>
                         <option value="announcement">Announcement (Blue)</option>
                     </select>
-                    
+                    <label>WhatsApp Support</label><input type="text" id="set-wa">
+                    <label>Telegram Support</label><input type="text" id="set-tg">
                     <button class="btn-main" onclick="saveConfig()">Save Config</button>
                 </div>
 
@@ -299,7 +354,6 @@
                     
                     <button class="btn-main" style="margin-top:20px;" onclick="saveAccounts()">Save Titles & Numbers</button>
                 </div>
-
             </div>
         </div>
     </div>
@@ -710,16 +764,32 @@
                 if(d.easypaisa) { 
                     document.getElementById('set-ep-tit').value = d.easypaisa.title || ''; 
                     document.getElementById('set-ep-num').value = d.easypaisa.number || ''; 
+                    if(d.easypaisa.image) document.getElementById('preview-ep').src = d.easypaisa.image;
                 }
                 if(d.jazzcash) { 
                     document.getElementById('set-jc-tit').value = d.jazzcash.title || ''; 
                     document.getElementById('set-jc-num').value = d.jazzcash.number || ''; 
+                    if(d.jazzcash.image) document.getElementById('preview-jc').src = d.jazzcash.image;
                 }
                 
                 // Popup
                 document.getElementById('set-popup').value = d.popup_msg || '';
                 document.getElementById('set-popup-title').value = d.popup_title || '';
                 document.getElementById('set-popup-temp').value = d.popup_template || 'default';
+                
+                // Support
+                if(d.support) { 
+                    document.getElementById('set-wa').value = d.support.whatsapp || ''; 
+                    document.getElementById('set-tg').value = d.support.telegram || ''; 
+                }
+                
+                // Links (UPDATED WITH APK LINK)
+                if(d.links) { 
+                    document.getElementById('set-task-video').value = d.links.video || ''; 
+                    document.getElementById('set-task-wa').value = d.links.whatsapp || ''; 
+                    document.getElementById('set-task-sub').value = d.links.subscribe || ''; 
+                    document.getElementById('set-link-apk').value = d.links.apk || ''; // Load APK Link
+                }
             });
         }
         
@@ -731,17 +801,46 @@
                     Toast.fire({ icon: 'success', title: status ? 'Withdrawals Enabled' : 'Withdrawals Disabled' });
                 });
         }
+
+        function saveLogo(type) {
+            const fileInput = document.getElementById(type === 'easypaisa' ? 'file-ep' : 'file-jc');
+            const file = fileInput.files[0];
+            
+            if(!file) return Swal.fire('Error', 'Please choose a file first', 'error');
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64 = e.target.result;
+                // FIX: Only update the 'image' path, don't touch title/number
+                db.ref(`settings/${type}/image`).set(base64).then(() => {
+                    Swal.fire('Success', 'Logo uploaded successfully!', 'success');
+                    document.getElementById(type === 'easypaisa' ? 'preview-ep' : 'preview-jc').src = base64;
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // UPDATED TASK CONFIG SAVE TO INCLUDE APK
+        function saveTaskConfig() { 
+            db.ref('settings/links').update({ 
+                video: document.getElementById('set-task-video').value, 
+                whatsapp: document.getElementById('set-task-wa').value, 
+                subscribe: document.getElementById('set-task-sub').value,
+                apk: document.getElementById('set-link-apk').value // Save APK Link
+            }).then(() => Swal.fire('Saved', '', 'success')); 
+        }
         
+        // SAFE ACCOUNT SAVING (PREVENTS LOGO DELETION)
         function saveAccounts() { 
-            db.ref('settings').update({ 
-                easypaisa: { 
-                    title: document.getElementById('set-ep-tit').value, 
-                    number: document.getElementById('set-ep-num').value
-                }, 
-                jazzcash: { 
-                    title: document.getElementById('set-jc-tit').value, 
-                    number: document.getElementById('set-jc-num').value
-                } 
+            // Ensures we only update title and number, leaving the image alone
+            db.ref('settings/easypaisa').update({ 
+                title: document.getElementById('set-ep-tit').value, 
+                number: document.getElementById('set-ep-num').value
+            });
+            
+            db.ref('settings/jazzcash').update({ 
+                title: document.getElementById('set-jc-tit').value, 
+                number: document.getElementById('set-jc-num').value
             }).then(() => Swal.fire('Saved', '', 'success')); 
         }
         
@@ -749,7 +848,11 @@
             db.ref('settings').update({ 
                 popup_msg: document.getElementById('set-popup').value, 
                 popup_title: document.getElementById('set-popup-title').value,
-                popup_template: document.getElementById('set-popup-temp').value
+                popup_template: document.getElementById('set-popup-temp').value,
+                support: { 
+                    whatsapp: document.getElementById('set-wa').value, 
+                    telegram: document.getElementById('set-tg').value 
+                } 
             }).then(() => Swal.fire('Saved', '', 'success')); 
         }
         
